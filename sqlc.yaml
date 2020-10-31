@@ -1,0 +1,7 @@
+version: "1"
+packages:
+  - name: "data"
+    path: "data"
+    schema: "schema.sql"
+    queries: "queries.sql"
+    emit_interface: true

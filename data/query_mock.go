@@ -18,11 +18,14 @@ var _ Querier = &QuerierMock{}
 //
 //         // make and configure a mocked Querier
 //         mockedQuerier := &QuerierMock{
-//             CreateOrderFunc: func(ctx context.Context, arg CreateOrderParams) (Order, error) {
+//             CreateOrderFunc: func(ctx context.Context, state string) (Order, error) {
 // 	               panic("mock out the CreateOrder method")
 //             },
-//             GetOrderFunc: func(ctx context.Context, id int32) (Order, error) {
+//             GetOrderFunc: func(ctx context.Context, id int64) (Order, error) {
 // 	               panic("mock out the GetOrder method")
+//             },
+//             UpdateOrderStateFunc: func(ctx context.Context, arg UpdateOrderStateParams) error {
+// 	               panic("mock out the UpdateOrderState method")
 //             },
 //         }
 //
@@ -32,10 +35,13 @@ var _ Querier = &QuerierMock{}
 //     }
 type QuerierMock struct {
 	// CreateOrderFunc mocks the CreateOrder method.
-	CreateOrderFunc func(ctx context.Context, arg CreateOrderParams) (Order, error)
+	CreateOrderFunc func(ctx context.Context, state string) (Order, error)
 
 	// GetOrderFunc mocks the GetOrder method.
-	GetOrderFunc func(ctx context.Context, id int32) (Order, error)
+	GetOrderFunc func(ctx context.Context, id int64) (Order, error)
+
+	// UpdateOrderStateFunc mocks the UpdateOrderState method.
+	UpdateOrderStateFunc func(ctx context.Context, arg UpdateOrderStateParams) error
 
 	// calls tracks calls to the methods.
 	calls struct {
@@ -43,49 +49,57 @@ type QuerierMock struct {
 		CreateOrder []struct {
 			// Ctx is the ctx argument value.
 			Ctx context.Context
-			// Arg is the arg argument value.
-			Arg CreateOrderParams
+			// State is the state argument value.
+			State string
 		}
 		// GetOrder holds details about calls to the GetOrder method.
 		GetOrder []struct {
 			// Ctx is the ctx argument value.
 			Ctx context.Context
 			// ID is the id argument value.
-			ID int32
+			ID int64
+		}
+		// UpdateOrderState holds details about calls to the UpdateOrderState method.
+		UpdateOrderState []struct {
+			// Ctx is the ctx argument value.
+			Ctx context.Context
+			// Arg is the arg argument value.
+			Arg UpdateOrderStateParams
 		}
 	}
-	lockCreateOrder sync.RWMutex
-	lockGetOrder    sync.RWMutex
+	lockCreateOrder      sync.RWMutex
+	lockGetOrder         sync.RWMutex
+	lockUpdateOrderState sync.RWMutex
 }
 
 // CreateOrder calls CreateOrderFunc.
-func (mock *QuerierMock) CreateOrder(ctx context.Context, arg CreateOrderParams) (Order, error) {
+func (mock *QuerierMock) CreateOrder(ctx context.Context, state string) (Order, error) {
 	if mock.CreateOrderFunc == nil {
 		panic("QuerierMock.CreateOrderFunc: method is nil but Querier.CreateOrder was just called")
 	}
 	callInfo := struct {
-		Ctx context.Context
-		Arg CreateOrderParams
+		Ctx   context.Context
+		State string
 	}{
-		Ctx: ctx,
-		Arg: arg,
+		Ctx:   ctx,
+		State: state,
 	}
 	mock.lockCreateOrder.Lock()
 	mock.calls.CreateOrder = append(mock.calls.CreateOrder, callInfo)
 	mock.lockCreateOrder.Unlock()
-	return mock.CreateOrderFunc(ctx, arg)
+	return mock.CreateOrderFunc(ctx, state)
 }
 
 // CreateOrderCalls gets all the calls that were made to CreateOrder.
 // Check the length with:
 //     len(mockedQuerier.CreateOrderCalls())
 func (mock *QuerierMock) CreateOrderCalls() []struct {
-	Ctx context.Context
-	Arg CreateOrderParams
+	Ctx   context.Context
+	State string
 } {
 	var calls []struct {
-		Ctx context.Context
-		Arg CreateOrderParams
+		Ctx   context.Context
+		State string
 	}
 	mock.lockCreateOrder.RLock()
 	calls = mock.calls.CreateOrder
@@ -94,13 +108,13 @@ func (mock *QuerierMock) CreateOrderCalls() []struct {
 }
 
 // GetOrder calls GetOrderFunc.
-func (mock *QuerierMock) GetOrder(ctx context.Context, id int32) (Order, error) {
+func (mock *QuerierMock) GetOrder(ctx context.Context, id int64) (Order, error) {
 	if mock.GetOrderFunc == nil {
 		panic("QuerierMock.GetOrderFunc: method is nil but Querier.GetOrder was just called")
 	}
 	callInfo := struct {
 		Ctx context.Context
-		ID  int32
+		ID  int64
 	}{
 		Ctx: ctx,
 		ID:  id,
@@ -116,14 +130,49 @@ func (mock *QuerierMock) GetOrder(ctx context.Context, id int32) (Order, error) 
 //     len(mockedQuerier.GetOrderCalls())
 func (mock *QuerierMock) GetOrderCalls() []struct {
 	Ctx context.Context
-	ID  int32
+	ID  int64
 } {
 	var calls []struct {
 		Ctx context.Context
-		ID  int32
+		ID  int64
 	}
 	mock.lockGetOrder.RLock()
 	calls = mock.calls.GetOrder
 	mock.lockGetOrder.RUnlock()
+	return calls
+}
+
+// UpdateOrderState calls UpdateOrderStateFunc.
+func (mock *QuerierMock) UpdateOrderState(ctx context.Context, arg UpdateOrderStateParams) error {
+	if mock.UpdateOrderStateFunc == nil {
+		panic("QuerierMock.UpdateOrderStateFunc: method is nil but Querier.UpdateOrderState was just called")
+	}
+	callInfo := struct {
+		Ctx context.Context
+		Arg UpdateOrderStateParams
+	}{
+		Ctx: ctx,
+		Arg: arg,
+	}
+	mock.lockUpdateOrderState.Lock()
+	mock.calls.UpdateOrderState = append(mock.calls.UpdateOrderState, callInfo)
+	mock.lockUpdateOrderState.Unlock()
+	return mock.UpdateOrderStateFunc(ctx, arg)
+}
+
+// UpdateOrderStateCalls gets all the calls that were made to UpdateOrderState.
+// Check the length with:
+//     len(mockedQuerier.UpdateOrderStateCalls())
+func (mock *QuerierMock) UpdateOrderStateCalls() []struct {
+	Ctx context.Context
+	Arg UpdateOrderStateParams
+} {
+	var calls []struct {
+		Ctx context.Context
+		Arg UpdateOrderStateParams
+	}
+	mock.lockUpdateOrderState.RLock()
+	calls = mock.calls.UpdateOrderState
+	mock.lockUpdateOrderState.RUnlock()
 	return calls
 }

@@ -4,5 +4,11 @@ FROM orders
 WHERE id = ($1);
 
 -- name: CreateOrder :one
-INSERT INTO orders (name, state)
-VALUES ($1, $2) RETURNING *;
+INSERT INTO orders (state)
+VALUES ($1)
+RETURNING *;
+
+-- name: UpdateOrderState :exec
+UPDATE orders
+SET state = ($1)
+WHERE id = ($2);

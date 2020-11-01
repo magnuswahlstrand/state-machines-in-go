@@ -5,7 +5,6 @@ package data
 import ()
 
 type Order struct {
-	ID    int32
-	Name  string
+	ID    int64
 	State string
 }

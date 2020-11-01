@@ -7,8 +7,9 @@ import (
 )
 
 type Querier interface {
-	CreateOrder(ctx context.Context, arg CreateOrderParams) (Order, error)
-	GetOrder(ctx context.Context, id int32) (Order, error)
+	CreateOrder(ctx context.Context, state string) (Order, error)
+	GetOrder(ctx context.Context, id int64) (Order, error)
+	UpdateOrderState(ctx context.Context, arg UpdateOrderStateParams) error
 }
 
 var _ Querier = (*Queries)(nil)

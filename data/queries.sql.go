@@ -8,31 +8,43 @@ import (
 )
 
 const createOrder = `-- name: CreateOrder :one
-INSERT INTO orders (name, state)
-VALUES ($1, $2) RETURNING id, name, state
+INSERT INTO orders (state)
+VALUES ($1)
+RETURNING id, state
 `
 
-type CreateOrderParams struct {
-	Name  string
-	State string
-}
-
-func (q *Queries) CreateOrder(ctx context.Context, arg CreateOrderParams) (Order, error) {
-	row := q.db.QueryRowContext(ctx, createOrder, arg.Name, arg.State)
+func (q *Queries) CreateOrder(ctx context.Context, state string) (Order, error) {
+	row := q.db.QueryRowContext(ctx, createOrder, state)
 	var i Order
-	err := row.Scan(&i.ID, &i.Name, &i.State)
+	err := row.Scan(&i.ID, &i.State)
 	return i, err
 }
 
 const getOrder = `-- name: GetOrder :one
-SELECT id, name, state
+SELECT id, state
 FROM orders
 WHERE id = ($1)
 `
 
-func (q *Queries) GetOrder(ctx context.Context, id int32) (Order, error) {
+func (q *Queries) GetOrder(ctx context.Context, id int64) (Order, error) {
 	row := q.db.QueryRowContext(ctx, getOrder, id)
 	var i Order
-	err := row.Scan(&i.ID, &i.Name, &i.State)
+	err := row.Scan(&i.ID, &i.State)
 	return i, err
+}
+
+const updateOrderState = `-- name: UpdateOrderState :exec
+UPDATE orders
+SET state = ($1)
+WHERE id = ($2)
+`
+
+type UpdateOrderStateParams struct {
+	State string
+	ID    int64
+}
+
+func (q *Queries) UpdateOrderState(ctx context.Context, arg UpdateOrderStateParams) error {
+	_, err := q.db.ExecContext(ctx, updateOrderState, arg.State, arg.ID)
+	return err
 }

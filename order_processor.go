@@ -15,10 +15,15 @@ type orderProcessor struct {
 }
 
 const (
-	stateCreated                  = "created"
-	stateValidated                = "validated"
-	stateBroadcastToOtherServices = "broadcast_to_other_services"
-	stateCompleted                = "completed"
+	stateCreated            = "created"
+	stateValidationStarted  = "validationStarted"
+	stateValidationComplete = "validationComplete"
+	stateBroadcastStarted   = "broadcastStarted"
+	stateBroadcastComplete  = "broadcastComplete"
+	stateCompleted          = "completed"
+
+	_started   = "_started"
+	_completed = "_completed"
 )
 
 func NewProcessor(database data.Querier) *orderProcessor {
@@ -71,9 +76,9 @@ func (p *orderProcessor) process(ctx context.Context, orderID int64) (bool, erro
 	switch order.State {
 	case stateCreated:
 		return false, p.validateOrder(ctx, &order)
-	case stateValidated:
-		return false, p.updateOtherServices(ctx, &order)
-	case stateBroadcastToOtherServices:
+	case stateValidationComplete:
+		return false, p.updateOtherServices(ctx, &order, stateValidationComplete)
+	case stateBroadcastComplete:
 		return true, p.finalizeOrder(ctx, &order)
 	default:
 		return false, fmt.Errorf("unexpected state: %q", order.State)
@@ -81,21 +86,27 @@ func (p *orderProcessor) process(ctx context.Context, orderID int64) (bool, erro
 }
 
 func (p *orderProcessor) validateOrder(ctx context.Context, order *data.Order) error {
-	// Validate order somehow
-
-	// Update state
-	update := data.UpdateOrderStateParams{stateValidated, order.ID}
-	if err := p.database.UpdateOrderState(ctx, update); err != nil {
+	if err := p.updateOrderState(ctx, order, stateValidationStarted); err != nil {
 		return err
 	}
-	return nil
+	// Validate order
+
+	// Update state
+	return p.updateOrderState(ctx, order, stateValidationComplete)
 }
 
-func (p *orderProcessor) updateOtherServices(ctx context.Context, order *data.Order) error {
+func (p *orderProcessor) updateOtherServices(ctx context.Context, order *data.Order, expectedState string) error {
+	if err := p.updateOrderState(ctx, order, stateBroadcastStarted, expectedState); err != nil {
+		return err
+	}
 	// Update other services
 
 	// Update state
-	update := data.UpdateOrderStateParams{stateBroadcastToOtherServices, order.ID}
+	return p.updateOrderState(ctx, order, stateBroadcastComplete, stateBroadcastStarted)
+}
+
+func (p *orderProcessor) updateOrderState(ctx context.Context, order *data.Order, state, expectedState string) error {
+	update := data.UpdateOrderStateParams{ID: order.ID, State: state}
 	if err := p.database.UpdateOrderState(ctx, update); err != nil {
 		return err
 	}

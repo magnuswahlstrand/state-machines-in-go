@@ -27,10 +27,14 @@ func CreateTestDatabase(t *testing.T) singleOrderDB {
 		UpdateOrderStateFunc: func(ctx context.Context, arg data.UpdateOrderStateParams) error {
 			switch db.order.State {
 			case stateCreated:
-				require.Equal(t, stateValidated, arg.State)
-			case stateValidated:
-				require.Equal(t, stateBroadcastToOtherServices, arg.State)
-			case stateBroadcastToOtherServices:
+				require.Equal(t, stateValidationStarted, arg.State)
+			case stateValidationStarted:
+				require.Equal(t, stateValidationComplete, arg.State)
+			case stateValidationComplete:
+				require.Equal(t, stateBroadcastStarted, arg.State)
+			case stateBroadcastStarted:
+				require.Equal(t, stateBroadcastComplete, arg.State)
+			case stateBroadcastComplete:
 				require.Equal(t, stateCompleted, arg.State)
 			}
 			db.order.State = arg.State
